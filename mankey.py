@@ -2,10 +2,11 @@ import nbformat
 import datetime
 import sys
 import os
+import argparse
 
 anki_dir = os.environ["ANKI_PROFILE"]
 
-model_map = {m[1]: m[0] for m in models}
+#model_map = {m[1]: m[0] for m in models}
 
 
 def parse_notes(lns):
@@ -125,11 +126,12 @@ def add_to_ankiweb(md):
 
 
 if __name__ == "__main__":
-    arg = sys.argv[1]
-    print(arg)
-    if arg == 'decks':
-        print_decks()
-    elif arg == 'models':
-        print_models()
-    else:
-        parse(arg)
+    parser = argparse.ArgumentParser(
+        description='Mankey // Parses Anki notes from Jupyter Markdown')
+    parser.add_argument("command", type=str, choices=['parse', 'test'], )
+    parser.add_argument(
+        "-f", required=False, type=str, help="path to .md or .ipynb to test parse")
+    args = parser.parse_args()
+    print(args)
+    if args.command:
+        print("test")
