@@ -14,7 +14,7 @@ def parse_notes(lns):
             '\n'.join(lns).split('---')[1:]]
 
 
-def add_to_anki(doc, col):
+def add_to_anki(doc, col=None):
     lines = doc.split('\n')
 
     deck = lines[1].strip()
@@ -25,12 +25,18 @@ def add_to_anki(doc, col):
     )
 
     #print(lines, deck, tags)
+    print("-------------------------------------------")
+    print(f"Deck: {deck}")
+
     notes = parse_notes(lines)
     for n in notes:
+        print("~note~")
         del n[0]
         model = n[0]
+        print(f"Model: {model}")
         if n[1] != '' or '####' not in n[1]:
             n_tags = tags + n[1].split(' ')
+            print(f"Tags: {tags}")
             open_pre = 0
             idx = 0
             for ln in n:
@@ -49,22 +55,26 @@ def add_to_anki(doc, col):
                         n[idx] = "[latex]$"+ln.replace('$', '$[/latex]', 2)[9:]
                 idx += 1
 
-            fields = '\n'.join(n).split('####')[1:]
-            print(fields)
-        m_id = model_map[model]
-        col.decks.byName(deck)['mid'] = m_id
-        note = col.newNote()
-        note.model()['did'] = col.decks.byName(deck)['id']
-        note.fields = fields
-        note.tags = col.tags.canonify(
-            col.tags.split(
-                ' '.join(n_tags).strip()
+            fields = [''.join(f.split('\n', 1)[1:])
+                      for f in '\n'.join(n).split('####')[1:]]
+            for i in range(0, len(fields)):
+                print(f"Field {i+1}")
+                print(fields[i])
+        if col:
+            m_id = model_map[model]
+            col.decks.byName(deck)['mid'] = m_id
+            note = col.newNote()
+            note.model()['did'] = col.decks.byName(deck)['id']
+            note.fields = fields
+            note.tags = col.tags.canonify(
+                col.tags.split(
+                    ' '.join(n_tags).strip()
+                )
             )
-        )
-        m = note.model()
-        m["tags"] = note.tags
-        col.models.save(m)
-        col.addNote(note)
+            m = note.model()
+            m["tags"] = note.tags
+            col.models.save(m)
+            col.addNote(note)
     pass
 
 
@@ -84,6 +94,15 @@ def print_models():
     print([(k, i['name']) for (k, i) in col.models.models.items()])
     col.save()
     del col
+
+
+def test_parse(target):
+    nb = nbformat.read(target, as_version=4)
+    md_cells = [c['source'] for c in nb.cells if c['cell_type']
+                == 'markdown' and '## anki\n' in c['source']]
+    # return md_cells
+    for md in md_cells:
+        add_to_anki(md)
 
 
 def parse(target):
@@ -128,10 +147,16 @@ def add_to_ankiweb(md):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='Mankey // Parses Anki notes from Jupyter Markdown')
-    parser.add_argument("command", type=str, choices=['parse', 'test'], )
+    parser.add_argument("command", type=str, choices=[
+                        'parse', 'test', 'decks', 'models'], )
     parser.add_argument(
         "-f", required=False, type=str, help="path to .md or .ipynb to test parse")
     args = parser.parse_args()
     print(args)
-    if args.command:
-        print("test")
+    if args.command == 'test':
+        assert args.f != None
+        test_parse(args.f)
+    elif args.command == 'decks':
+        print_decks()
+    elif args.command == 'models':
+        print_models()
