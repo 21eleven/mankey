@@ -8,10 +8,25 @@ anki_dir = os.environ["ANKI_PROFILE"]
 
 #model_map = {m[1]: m[0] for m in models}
 
+base_img_width = 300
+
 
 def parse_notes(lns):
     return [n.split('\n') for n in
             '\n'.join(lns).split('---')[1:]]
+
+
+def add_image(image_url, name, collection):
+    """
+    take url
+    downloads image from url to /tmp
+    resizes / scales down if needed
+    figure out if png or 
+    rename to human_named.png 
+    and move to collection.media
+
+    """
+    pass
 
 
 def add_to_anki(doc, col=None):
@@ -50,7 +65,14 @@ def add_to_anki(doc, col=None):
                         n[idx] = ln.replace('```', html)
                     if ln[:2] == "![":
                         # is image
-                        pass
+                        url = ln.split("(")[-1].split(")")[0]
+                        print(url)
+                        name = ln.split("[")[-1].split("]")[0]
+                        print(name)
+                        if col:
+                            add_image(url, col)
+
+                        n[idx] = f'<img src="{name}">'
                     if ln[0] == "$":
                         n[idx] = "[latex]$"+ln.replace('$', '$[/latex]', 2)[9:]
                 idx += 1
@@ -78,7 +100,6 @@ def add_to_anki(doc, col=None):
             m["tags"] = note.tags
             col.models.save(m)
             col.addNote(note)
-    pass
 
 
 def print_decks():
