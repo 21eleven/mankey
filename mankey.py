@@ -26,6 +26,14 @@ def add_image(image_url, name, collection):
     and move to collection.media
 
     """
+    from PIL import Image
+
+    basewidth = 300
+    img = Image.open('somepic.jpg')
+    wpercent = (basewidth/float(img.size[0]))
+    hsize = int((float(img.size[1])*float(wpercent)))
+    img = img.resize((basewidth, hsize), Image.ANTIALIAS)
+    img.save('sompic.jpg')
     pass
 
 
