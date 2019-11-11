@@ -61,6 +61,9 @@ def add_to_anki(doc, col=None):
                 print(f"Field {i+1}")
                 print(fields[i])
         if col:
+            m_id = [k for (k, i) in col.models.models.items()
+                    if i["name"] == model][0]
+
             m_id = model_map[model]
             col.decks.byName(deck)['mid'] = m_id
             note = col.newNote()
