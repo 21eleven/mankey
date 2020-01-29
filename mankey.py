@@ -22,7 +22,8 @@ base_img_width = 300
 
 
 class Card():
-    def __init__()
+    def __init__():
+        self.dir = anki_dir
 
 
 def fetch_img(url):
@@ -147,6 +148,7 @@ def print_decks():
     col = Collection(f"{anki_dir}collection.anki2", log=True)
     print([d[1]["name"] for d in col.decks.decks.items()])
     col.save()
+    col.close()
     del col
 
 
@@ -156,6 +158,7 @@ def print_models():
     col = Collection(f"{anki_dir}collection.anki2", log=True)
     print([(k, i['name']) for (k, i) in col.models.models.items()])
     col.save()
+    col.close()
     del col
 
 
@@ -180,6 +183,7 @@ def parse(target):
         add_to_anki(md, col)
         break
     col.save()
+    col.close()
     del col
 
 
