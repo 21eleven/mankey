@@ -12,7 +12,7 @@ import io
 
 anki_dir = os.environ["ANKI_PROFILE"]
 
-#model_map = {m[1]: m[0] for m in models}
+# model_map = {m[1]: m[0] for m in models}
 
 base_img_width = 300
 
@@ -22,8 +22,64 @@ base_img_width = 300
 
 
 class Card():
-    def __init__():
+    def __init__(self, deck, model, tags=[]):
         self.dir = anki_dir
+        self.deck = deck
+        self.model = model
+        self.tags = tags
+        mankey_tags = [
+            "mankey", pm.now().format("YYYYMMDD-HHmm"),
+        ]
+        self.tags.extend(mankey_tags)
+
+    def front(self, front_text):
+        self.field1 = format_text(front_text)
+        # print(self.field1)
+        return self
+
+    def back(self, back_text):
+        self.field2 = self.format_text(back_text)
+        # print(self.field2)
+        return self
+
+    def tag(self, tag):
+        self.tags.append(tag)
+        return self
+
+    def tags(self, tags):
+        self.tags.extend(tags)
+        return self
+
+    def commit(self): pass
+
+
+def format_text(text):
+    open_pre = 0
+    field = text.split('\n')
+    for idx, ln in enumerate(field):
+        if ln:
+            if "```" in ln:
+                open_pre ^= 1
+                if open_pre:
+                    html = "<pre>"
+                else:
+                    html = "</pre>"
+                field[idx] = ln.replace('```', html)
+            if ln[:2] == "![":
+                # is image
+                url = ln.split("(")[-1].split(")")[0]
+                name = ln.split("[")[-1].split("]")[0]
+                name = f"{name}.png"
+                # print(name)
+                # if col:
+                #     name = add_image(url, name, col)
+                # else:
+                #     name = f"{name}.png"
+
+                field[idx] = f'<img src="{name}">'
+            if ln[0] == "$":
+                field[idx] = "[latex]$"+ln.replace('$', '$[/latex]', 2)[9:]
+    return '\n'.join(field)
 
 
 def fetch_img(url):
@@ -79,7 +135,7 @@ def add_to_anki(doc, col=None):
         lines[2].strip().split(' ')
     )
 
-    #print(lines, deck, tags)
+    # print(lines, deck, tags)
     print("-------------------------------------------")
     print(f"Deck: {deck}")
 
@@ -231,7 +287,7 @@ if __name__ == "__main__":
         print_models()
     elif args.command == "template":
         print("""
-## anki
+# anki
 BayesianStatistics
 probability math
 
@@ -247,7 +303,7 @@ The weather man says there's
 
 {{c1::a cloze card}} - outside cloze
 
-#### .
+# .
 
 $\displaystyle P( \	ext{forgot, umbrella}) = P( \	ext{rain} ) \	imes P( \	ext{forgot umbrella}) = \frac{1}{10} \	imes \frac{1}{2} = 0.05 $
 
@@ -256,11 +312,11 @@ Basic
 sum_rule
 
 
-#### field 1
+# field 1
 
 ![imgname](https://.jpg)
 
-#### field 2
+# field 2
 
 $ \frac{1}{20,000} $
 """)
