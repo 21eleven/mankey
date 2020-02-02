@@ -9,6 +9,7 @@ import requests as req
 import PIL
 from PIL import Image as PIL_image
 import io
+import pendulum as pm
 
 anki_dir = os.environ["ANKI_PROFILE"]
 
@@ -22,7 +23,7 @@ base_img_width = 300
 
 
 class Card():
-    def __init__(self, deck, model, tags=[]):
+    def __init__(self, deck, model, tags=[], field1=None, field2=None):
         self.dir = anki_dir
         self.deck = deck
         self.model = model
@@ -38,7 +39,7 @@ class Card():
         return self
 
     def back(self, back_text):
-        self.field2 = self.format_text(back_text)
+        self.field2 = format_text(back_text)
         # print(self.field2)
         return self
 
@@ -50,7 +51,47 @@ class Card():
         self.tags.extend(tags)
         return self
 
-    def commit(self): pass
+    def commit(self):
+        import anki
+        try:
+            Collection = anki.storage.Collection
+            col = Collection(f"{anki_dir}collection.anki2", log=True)
+            m_id = [k for (k, i) in col.models.models.items()
+                    if i["name"] == self.model][0]
+            col.decks.byName(self.deck)['mid'] = m_id
+            note = col.newNote()
+            note.model()['did'] = col.decks.byName(self.deck)['id']
+            fields = [self.field1, self.field2]
+            for field in fields:
+                lines = field.split('\n')
+                for idx, ln in enumerate(lines):
+                    if ln[:2] == "![":
+                        # is image
+                        url = ln.split("(")[-1].split(")")[0]
+                        name = ln.split("[")[-1].split("]")[0]
+                        name = f"{name}.png"
+                        name = add_image(url, name, col)
+                        lines[idx] = f'<img src="{name}">'
+            field = "\n".join(lines)
+            note.fields = fields
+            note.tags = col.tags.canonify(
+                col.tags.split(
+                    ' '.join(self.tags).strip()
+                )
+            )
+            m = note.model()
+            m["tags"] = note.tags
+            col.models.save(m)
+            col.addNote(note)
+            col.save()
+        finally:
+            col.close()
+            del col
+
+
+class Cloze(Card):
+    def __init__(self, deck, tags=[]):
+        super().__init__(deck=deck, model="Cloze", tags=tags)
 
 
 def format_text(text):
@@ -65,18 +106,6 @@ def format_text(text):
                 else:
                     html = "</pre>"
                 field[idx] = ln.replace('```', html)
-            if ln[:2] == "![":
-                # is image
-                url = ln.split("(")[-1].split(")")[0]
-                name = ln.split("[")[-1].split("]")[0]
-                name = f"{name}.png"
-                # print(name)
-                # if col:
-                #     name = add_image(url, name, col)
-                # else:
-                #     name = f"{name}.png"
-
-                field[idx] = f'<img src="{name}">'
             if ln[0] == "$":
                 field[idx] = "[latex]$"+ln.replace('$', '$[/latex]', 2)[9:]
     return '\n'.join(field)
