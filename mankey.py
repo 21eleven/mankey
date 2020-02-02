@@ -23,8 +23,14 @@ base_img_width = 300
 
 
 class Card():
-    def __init__(self, deck, model, tags=[], field1=None, field2=None):
+    def __init__(self, deck=None, model=None, tags=[], field1=None, field2=None):
         self.dir = anki_dir
+        if deck == None:
+            decks = get_decks()
+            deck = select(decks)
+        if model == None:
+            models = get_models()
+            model = select(models)
         self.deck = deck
         self.model = model
         self.tags = tags
@@ -32,6 +38,10 @@ class Card():
             "mankey", pm.now().format("YYYYMMDD-HHmm"),
         ]
         self.tags.extend(mankey_tags)
+        if field1:
+            self.field1 = format_text(field1)
+        if field2:
+            self.field2 = format_text(field2)
 
     def front(self, front_text):
         self.field1 = format_text(front_text)
@@ -51,6 +61,16 @@ class Card():
         self.tags.extend(tags)
         return self
 
+    def append_img_field1(self, name, url):
+        assert "http" in url
+        assert " " not in name
+        self.field1 += f"\n![{name}]({url})\n"
+
+    def append_img_field2(self, name, url):
+        assert "http" in url
+        assert " " not in name
+        self.field2 += f"\n![{name}]({url})\n"
+
     def commit(self):
         import anki
         try:
@@ -62,7 +82,7 @@ class Card():
             note = col.newNote()
             note.model()['did'] = col.decks.byName(self.deck)['id']
             fields = [self.field1, self.field2]
-            for field in fields:
+            for f_idx, field in enumerate(fields):
                 lines = field.split('\n')
                 for idx, ln in enumerate(lines):
                     if ln[:2] == "![":
@@ -72,7 +92,7 @@ class Card():
                         name = f"{name}.png"
                         name = add_image(url, name, col)
                         lines[idx] = f'<img src="{name}">'
-            field = "\n".join(lines)
+                fields[f_idx] = "\n".join(lines)
             note.fields = fields
             note.tags = col.tags.canonify(
                 col.tags.split(
@@ -90,8 +110,30 @@ class Card():
 
 
 class Cloze(Card):
-    def __init__(self, deck, tags=[]):
+    def __init__(self, deck=None, tags=[]):
         super().__init__(deck=deck, model="Cloze", tags=tags)
+
+
+def select(lis):
+    for i, item in enumerate(lis):
+        print(f"{i+1}) {item}")
+    choice = int(input()) - 1  # input is 1 indexed, convert to 0 index
+    return lis[choice]
+
+
+def template():
+    print("""
+The weather man says there's
+```
+    code today 
+```
+
+{{c1::a cloze card}} - outside cloze
+
+$ \frac{1}{20,000} \Pi \Delta \sum_{x=0}^3 x^2 $
+
+![imgname](https://.jpg)
+    """)
 
 
 def format_text(text):
@@ -228,23 +270,33 @@ def add_to_anki(doc, col=None):
 
 
 def print_decks():
+    print(get_decks())
+
+
+def get_decks():
     import anki
     Collection = anki.storage.Collection
     col = Collection(f"{anki_dir}collection.anki2", log=True)
-    print([d[1]["name"] for d in col.decks.decks.items()])
+    decks = [d[1]["name"] for d in col.decks.decks.items()]
     col.save()
     col.close()
     del col
+    return decks
 
 
 def print_models():
+    print(get_models())
+
+
+def get_models():
     import anki
     Collection = anki.storage.Collection
     col = Collection(f"{anki_dir}collection.anki2", log=True)
-    print([(k, i['name']) for (k, i) in col.models.models.items()])
+    models = [i['name']for (k, i) in col.models.models.items()]
     col.save()
     col.close()
     del col
+    return models
 
 
 def test_parse(target):
@@ -327,10 +379,15 @@ note_tag
 #### 
 The weather man says there's
 ```
-    code
+    code today 
 ```
 
 {{c1::a cloze card}} - outside cloze
+
+$ \frac{1}{20,000} \Pi \Delta \sum_{x=0}^3 x^2 $
+
+![imgname](https://.jpg)
+
 
 # .
 
