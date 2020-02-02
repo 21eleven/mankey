@@ -40,8 +40,12 @@ class Card():
         self.tags.extend(mankey_tags)
         if field1:
             self.field1 = format_text(field1)
+        else:
+            self.field1 = ''
         if field2:
             self.field2 = format_text(field2)
+        else:
+            self.field2 = ''
 
     def front(self, front_text):
         self.field1 = format_text(front_text)
